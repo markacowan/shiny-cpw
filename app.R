@@ -56,27 +56,8 @@ ui <- fluidPage(
 
 server <- function(input, output) {
   
-  ###myconn<-odbcConnectAccess2007("CPW.accdb")
-# cs <- "Driver={Microsoft Access Driver (*.mdb, *.accdb)};Dbq=data/CPW.accdb"
-# myconn <- dbConnect(odbc::odbc(), .connection_string = cs)
-# db <- here::here("data", "CPW.accdb")
-# mdbget <- . %>% Hmisc::mdb.get(db, dateformat = '%Y-%m-%d', as.is = T, table = .)
-# sometable <- mdbget("sometable")
-
-  #detections <- sqlFetch(myconn, 'detections')
-  #species <- sqlFetch(myconn, 'species')
-  #photos <- sqlFetch(myconn, 'photos')
-  #visits <- sqlFetch(myconn, 'visits')
-  #CameraLocations <- sqlFetch(myconn, 'CameraLocations')	
-# detections <- dbReadTable(myconn, 'detections')  
-# species <- dbReadTable(myconn, 'species')  
-# photos <- dbReadTable(myconn, 'photos')
-# visits <- dbReadTable(myconn, 'visits')  
-# CameraLocations <- dbReadTable(myconn, 'CameraLocations')  
-  # close(myconn)
-# dbDisconnect(myconn)
-
-load(here::here("data", "defaults.RData"))
+  # TODO https://github.com/markacowan/shiny-cpw/issues/1
+  load(here::here("data", "defaults.RData"))
   
   one <- merge (CameraLocations, visits, by="LocationID")
   two <- merge (one, photos, by="VisitID")
@@ -482,11 +463,11 @@ zz<-as.character(po1_1[,1])
 po2 <- SpatialPoints(po1[,3:4],proj4string=CRS("+init=epsg:32750"))
 po2 <- SpatialPointsDataFrame(po2, po1)
 
-if (file.exists(here::here("data", "outline.shp"))){
-  message("data/outlihe.shp exists")
-  CA <- readOGR(dsn=here::here("data"), layer = "outline")}
-if (file.exists(here::here("data", "tracks.shp"))){
-tr <- readOGR(dsn=here::here("data"), layer = "tracks")}
+# if (file.exists(here::here("data", "outline.shp"))){
+#   message("data/outlihe.shp exists")
+#   CA <- readOGR(dsn=here::here("data"), layer = "outline")}
+# if (file.exists(here::here("data", "tracks.shp"))){
+# tr <- readOGR(dsn=here::here("data"), layer = "tracks")}
 #if (file.exists(paste(wd,"data/points.shp",sep=""))){
 #po <- readOGR(dsn=paste(wd), layer = paste(points))}
 # define groups for mapping
