@@ -1,8 +1,10 @@
-####install.packages(c("odbc","DBI","RODBC", "data.table", "reshape2","dplyr","qcc","Rmisc","ggplot2","sp","ggmap","rgeos", "tidyr","gstat","deldir","dismo","rgdal","fitdistrplus","logspline","DT","maptools"))
+# install.packages(c("odbc","DBI","RODBC", "here", "readr", "data.table", "reshape2","dplyr",
+# "qcc","Rmisc","ggplot2","sp","ggmap","rgeos", "tidyr","gstat","deldir","dismo","rgdal","fitdistrplus","logspline","DT","maptools"))
 
 
 
-x <- c("odbc","DBI","RODBC", "data.table", "reshape2","qcc", "Rmisc","ggplot2","dplyr","sp","ggmap","rgeos", "tidyr","gstat","deldir","dismo","rgdal","fitdistrplus","logspline","DT","maptools")
+x <- c("odbc","DBI","RODBC", "here", "readr", "data.table", "reshape2","qcc", "Rmisc",
+       "ggplot2","dplyr","sp","ggmap","rgeos", "tidyr","gstat","deldir","dismo","rgdal","fitdistrplus","logspline","DT","maptools")
 lapply(x, library, character.only = TRUE)
 
 ui <- fluidPage(
@@ -11,17 +13,11 @@ ui <- fluidPage(
   h1(id="title", "CPW data analysis-M.A.Cowan (beta)"),
   tags$style(HTML("#title{color: blue;font-size: 15px;}")),
   
-  
-  
-  
-  
-  
-  
   sidebarLayout(
     sidebarPanel(dateRangeInput("daterange1", "Date Range:",
                                 start = "2015-03-01",
                                 end   = "2018-05-31"),
-                 textInput("path", label= "Path for spatial data",value="C:/",placeholder = "C:/"),
+                 # textInput("path", label= "Path for spatial data",value="C:/",placeholder = "C:/"),
                  sliderInput("slider1", label = ("Camera Location #'s"), min = 1, 
                              max = 100, value = c(1,60)),
                  sliderInput("slider2", label = ("Resolution for map grid (m)"), min = 10, 
@@ -61,7 +57,7 @@ ui <- fluidPage(
 server <- function(input, output) {
   
   ###myconn<-odbcConnectAccess2007("CPW.accdb")
-cs <- "Driver={Microsoft Access Driver (*.mdb, *.accdb)};Dbq=D:/shiny/Dryandra/CPW.accdb"
+cs <- "Driver={Microsoft Access Driver (*.mdb, *.accdb)};Dbq=data/CPW.accdb"
 myconn <- dbConnect(odbc::odbc(), .connection_string = cs)
   #detections <- sqlFetch(myconn, 'detections')
   #species <- sqlFetch(myconn, 'species')
@@ -105,13 +101,13 @@ dbDisconnect(myconn)
     #####spec_a<-c("Brush Wallaby","Cat","Chuditch","Echidna","Fox","Grey Kangaroo","Numbat","Possum","Quenda","Rabbit","Red-tailed Phascogale","Tammar","Woylie")
     spec_a<-input$variable
     interval<-input$intInput
-    wd<-(paste(input$path))
+    wd <- here::here("data")
+    # wd<-(paste(input$path))
     outline<-("outline") 	###### boundary shapefile name
     tracks<-("tracks")  	###### tracks shapefile name
     ##points<-("points")  	###### points shapefile name
     rast<-input$slider2		###### resolution of raster in meters
     
-    wd<-(paste(input$path))
     
     five<-five[five$LocationID %in% cam_loc,] ##### only records that have the same LocationID as the values in vector "cam_loc" are kept
     five<-five[five$date >= Min_Date, ]##### only records that exceed minimum date are kept
@@ -275,9 +271,9 @@ test2<-NULL
   observeEvent(input$goButton2, { 
     ####write.csv (daily, file="Raw_Daily_Detections.csv")
     ####write.csv (date_missing, file="missing_dates.csv")
-    write.csv (matrix2, file="All_Fauna_Detections X Day.csv")
+    write_csv(matrix2, file=here::here("data", "All_Fauna_Detections X Day.csv"))
     ####write.csv (matrix3, file="Detections X Day.csv")
-    write.csv (locations, file="All_Fauna_Detections X Location.csv")
+    write_csv(locations, file=here::here("data", "All_Fauna_Detections X Location.csv"))
     ####write.csv (locations2, file="Detections X Location.csv")
   })
   
@@ -340,7 +336,8 @@ test2<-NULL
       pl<-ggplot(data=stats, aes(x=idate, y=stats[,3], group=1))  + 
         ylab("mean daily detections") +
         xlab("date")+scale_x_date(date_breaks = paste(interval*3.65,"day"))+
-        ggtitle(paste(species,"(interval:",interval,"days)"), subtitle = NULL)+
+        # ggtitle(paste(species,"(interval:",interval,"days)"), subtitle = NULL)+
+        ggtitle(glue::glue("{species} (interval: {interval} days)")) +
         geom_ribbon(aes(ymin=stats[,3]-stats$ci, ymax=stats[,3]+stats$ci),fill="grey90")+
         geom_errorbar(aes(ymin=stats[,3]-sd, ymax=stats[,3]+sd), width=.3, color="grey40", size=0.2) +
         geom_smooth(method = "lm", se = FALSE, color="grey40", size=0.2,linetype=2, alpha=0.1) +
@@ -479,11 +476,11 @@ zz<-as.character(po1_1[,1])
 po2 <- SpatialPoints(po1[,3:4],proj4string=CRS("+init=epsg:32750"))
 po2 <- SpatialPointsDataFrame(po2, po1)
 
-if (file.exists(paste(wd,"/outline.shp",sep=""))){
+if (file.exists(paste(wd,"data/outline.shp",sep=""))){
 CA <- readOGR(dsn=paste(wd), layer = paste(outline))}
-if (file.exists(paste(wd,"/tracks.shp",sep=""))){
+if (file.exists(paste(wd,"data/tracks.shp",sep=""))){
 tr <- readOGR(dsn=paste(wd), layer = paste(tracks))}
-#if (file.exists(paste(wd,"/points.shp",sep=""))){
+#if (file.exists(paste(wd,"data/points.shp",sep=""))){
 #po <- readOGR(dsn=paste(wd), layer = paste(points))}
 # define groups for mapping
 cuts <- c(0,5,10,15,20,25,30,35)
@@ -496,11 +493,11 @@ blues <- colorRampPalette(c('yellow', 'orange', 'blue', 'dark blue'))
 #####library(rgdal)
 TA <- CRS("+init=epsg:32750")
 dta <- spTransform(dsp, TA)
-if (file.exists(paste(wd,"/outline.shp",sep=""))){
+if (file.exists(paste(wd,"data/outline.shp",sep=""))){
 cata <- spTransform(CA, TA)}
-if (file.exists(paste(wd,"/tracks.shp",sep=""))){
+if (file.exists(paste(wd,"data/tracks.shp",sep=""))){
 tr <- spTransform(tr, TA)}
-##if (file.exists(paste(wd,"/points.shp",sep=""))){
+##if (file.exists(paste(wd,"data/points.shp",sep=""))){
 ##po <- spTransform(po, TA)}
 
 ###### calculates and plots if neccessary a voroni plot from the camarea locations
@@ -548,7 +545,7 @@ output$NN_Interpolation<-renderPlot({
   
   
   #### aggregates data, clips to boundary, and fills voroni plot colours based on detections at each location
-    if (file.exists(paste(wd,"/outline.shp",sep=""))){    
+    if (file.exists(paste(wd,"data/outline.shp",sep=""))){    
   ca <- aggregate(cata)
   ca<-spTransform(ca, TA)
   ## Loading required namespace: rgeos
@@ -610,11 +607,11 @@ plot(hill, col=grey(0:100/100),legend=FALSE,  lwd=.2, cex.main=0.6,cex.sub=0.2, 
 ##op<-par(cex=0.5)
 plot(nnmsk, col=rainbow(25, alpha=0.35),cex=1, add=TRUE)#### overlays raster layer nmsk on hillshade
 title(main = list(paste(species2," (NN)"), cex = 1, col = "blue", font = 2))
-if (file.exists(paste(wd,"/tracks.shp",sep=""))){
+if (file.exists(paste(wd,"data/tracks.shp",sep=""))){
 plot(tr, add = TRUE, lwd = 0.5, border = "black")}
-if (file.exists(paste(wd,"/outline.shp",sep=""))){
+if (file.exists(paste(wd,"data/outline.shp",sep=""))){
 plot(CA, add = TRUE, lwd = 0.5,  border = "black")}
-##if (file.exists(paste(wd,"/points.shp",sep=""))){
+##if (file.exists(paste(wd,"data/points.shp",sep=""))){
 ##plot(po, add = TRUE, lwd = 0.5, cex=0.5,  border = "red")}
 ######dev.off()
 plot(po2, add = TRUE, lwd = 0.5,  border = "black")
@@ -641,7 +638,7 @@ output$IDW_Interpolation<-renderPlot({
   
  
   #### aggregates data, clips to boundary, and fills voroni plot colours based on detections at each location
-  if (file.exists(paste(wd,"/outline.shp",sep=""))){    
+  if (file.exists(paste(wd,"data/outline.shp",sep=""))){    
     ca <- aggregate(cata)
     ca<-spTransform(ca, TA)
     ## Loading required namespace: rgeos
@@ -705,11 +702,11 @@ plot(hill, col=grey(0:100/100), legend=FALSE, lwd=.2, cex.main=0.6,cex.sub=0.2, 
 ##op<-par(cex=0.5)
 plot(idwr, col=rainbow(25, alpha=0.35),cex=1, add=TRUE)
 title(main = list(paste(species2," (IDW)"), cex = 1, col = "blue", font = 2))
-if (file.exists(paste(wd,"/tracks.shp",sep=""))){
+if (file.exists(paste(wd,"data/tracks.shp",sep=""))){
 plot(tr, add = TRUE, lwd = 0.5, border = "black")}
-if (file.exists(paste(wd,"/outline.shp",sep=""))){
+if (file.exists(paste(wd,"data/outline.shp",sep=""))){
 plot(CA, add = TRUE, lwd = 0.5,  border = "black")}
-##if (file.exists(paste(wd,"/points.shp",sep=""))){
+##if (file.exists(paste(wd,"data/points.shp",sep=""))){
 ##plot(po, add = TRUE, lwd = 0.5, cex=0.5,  border = "red")}
 plot(po2, add = TRUE, lwd = 0.5,  border = "black")
 pointLabel(xx,yy,labels=zz, doPlot=TRUE)
@@ -756,13 +753,11 @@ output$Table<-renderDT({stats2})}
   #####spec_a<-c("Brush Wallaby","Cat","Chuditch","Echidna","Fox","Grey Kangaroo","Numbat","Possum","Quenda","Rabbit","Red-tailed Phascogale","Tammar","Woylie")
   spec_a<-input$variable
   interval<-input$intInput
-  wd<-(paste(input$path))
   outline<-("outline") 	###### boundary shapefile name
   tracks<-("tracks")  	###### tracks shapefile name
   ##points<-("points")  	###### points shapefile name
   rast<-input$slider2		###### resolution of raster in meters
   
-  wd<-(paste(input$path))
   
   five<-five[five$LocationID %in% cam_loc,] ##### only records that have the same LocationID as the values in vector "cam_loc" are kept
   five<-five[five$date >= Min_Date, ]##### only records that exceed minimum date are kept
