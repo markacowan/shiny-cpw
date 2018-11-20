@@ -1,9 +1,9 @@
 # install.packages(c("odbc","DBI","RODBC", "here", "readr", "data.table", "reshape2","dplyr",
-# "qcc","Rmisc","ggplot2","sp","ggmap","rgeos", "tidyr","gstat","deldir","dismo","rgdal","fitdistrplus","logspline","DT","maptools"))
+# "qcc","Rmisc","ggplot2", "dbplyr", "sp","ggmap","rgeos", "tidyr","gstat","deldir","dismo","rgdal","fitdistrplus","logspline","DT","maptools"))
 
 
 
-x <- c("odbc","DBI","RODBC", "here", "readr", "data.table", "reshape2","qcc", "Rmisc",
+x <- c("odbc","DBI","RODBC", "here","dbplyr",  "readr", "data.table", "reshape2","qcc", "Rmisc",
        "ggplot2","dplyr","sp","ggmap","rgeos", "tidyr","gstat","deldir","dismo","rgdal","fitdistrplus","logspline","DT","maptools")
 lapply(x, library, character.only = TRUE)
 
@@ -57,20 +57,26 @@ ui <- fluidPage(
 server <- function(input, output) {
   
   ###myconn<-odbcConnectAccess2007("CPW.accdb")
-cs <- "Driver={Microsoft Access Driver (*.mdb, *.accdb)};Dbq=data/CPW.accdb"
-myconn <- dbConnect(odbc::odbc(), .connection_string = cs)
+# cs <- "Driver={Microsoft Access Driver (*.mdb, *.accdb)};Dbq=data/CPW.accdb"
+# myconn <- dbConnect(odbc::odbc(), .connection_string = cs)
+# db <- here::here("data", "CPW.accdb")
+# mdbget <- . %>% Hmisc::mdb.get(db, dateformat = '%Y-%m-%d', as.is = T, table = .)
+# sometable <- mdbget("sometable")
+
   #detections <- sqlFetch(myconn, 'detections')
   #species <- sqlFetch(myconn, 'species')
   #photos <- sqlFetch(myconn, 'photos')
   #visits <- sqlFetch(myconn, 'visits')
   #CameraLocations <- sqlFetch(myconn, 'CameraLocations')	
-detections <- dbReadTable(myconn, 'detections')  
-species <- dbReadTable(myconn, 'species')  
-photos <- dbReadTable(myconn, 'photos')  
-visits <- dbReadTable(myconn, 'visits')  
-CameraLocations <- dbReadTable(myconn, 'CameraLocations')  
-  #close(myconn)
-dbDisconnect(myconn)
+# detections <- dbReadTable(myconn, 'detections')  
+# species <- dbReadTable(myconn, 'species')  
+# photos <- dbReadTable(myconn, 'photos')
+# visits <- dbReadTable(myconn, 'visits')  
+# CameraLocations <- dbReadTable(myconn, 'CameraLocations')  
+  # close(myconn)
+# dbDisconnect(myconn)
+
+load(here::here("data", "defaults.RData"))
   
   one <- merge (CameraLocations, visits, by="LocationID")
   two <- merge (one, photos, by="VisitID")
@@ -476,10 +482,11 @@ zz<-as.character(po1_1[,1])
 po2 <- SpatialPoints(po1[,3:4],proj4string=CRS("+init=epsg:32750"))
 po2 <- SpatialPointsDataFrame(po2, po1)
 
-if (file.exists(paste(wd,"data/outline.shp",sep=""))){
-CA <- readOGR(dsn=paste(wd), layer = paste(outline))}
-if (file.exists(paste(wd,"data/tracks.shp",sep=""))){
-tr <- readOGR(dsn=paste(wd), layer = paste(tracks))}
+if (file.exists(here::here("data", "outline.shp"))){
+  message("data/outlihe.shp exists")
+  CA <- readOGR(dsn=here::here("data"), layer = "outline")}
+if (file.exists(here::here("data", "tracks.shp"))){
+tr <- readOGR(dsn=here::here("data"), layer = "tracks")}
 #if (file.exists(paste(wd,"data/points.shp",sep=""))){
 #po <- readOGR(dsn=paste(wd), layer = paste(points))}
 # define groups for mapping
@@ -493,9 +500,9 @@ blues <- colorRampPalette(c('yellow', 'orange', 'blue', 'dark blue'))
 #####library(rgdal)
 TA <- CRS("+init=epsg:32750")
 dta <- spTransform(dsp, TA)
-if (file.exists(paste(wd,"data/outline.shp",sep=""))){
+if (file.exists(here::here("data", "outline.shp"))){
 cata <- spTransform(CA, TA)}
-if (file.exists(paste(wd,"data/tracks.shp",sep=""))){
+if (file.exists(here::here("data", "tracks.shp"))){
 tr <- spTransform(tr, TA)}
 ##if (file.exists(paste(wd,"data/points.shp",sep=""))){
 ##po <- spTransform(po, TA)}
@@ -545,7 +552,7 @@ output$NN_Interpolation<-renderPlot({
   
   
   #### aggregates data, clips to boundary, and fills voroni plot colours based on detections at each location
-    if (file.exists(paste(wd,"data/outline.shp",sep=""))){    
+    if (file.exists(here::here("data", "outline.shp"))){
   ca <- aggregate(cata)
   ca<-spTransform(ca, TA)
   ## Loading required namespace: rgeos
