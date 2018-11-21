@@ -38,12 +38,12 @@ ui <- fluidPage(
 
   sidebarLayout(
     sidebarPanel(
-      dateRangeInput("daterange1", "Date Range:", start = "2015-03-01", end = "2018-09-07"),
+      dateRangeInput("daterange1", "Date Range:", start = "2000-03-01", end = "2018-09-07"),
       sliderInput("slider1", label = ("Camera Location #'s"), min = 1, max = 100, value = c(1, 60)),
       sliderInput("slider2", label = ("Resolution for map grid (m)"), min = 10, max = 500, value = 50),
       sliderInput("intInput", label = ("Survey interval in days (default=months)"), min = 0, max = 60, value = 0),
-      ## tags$style("#goButton {background-color:green;}"),
-      actionButton("goButton", strong("Run"), width = "100%", height = 80), br(),
+      tags$style("#goButton {background-color:green;}"),
+      actionButton("goButton", strong("Run"), width = "100%", height = 80),
       numericInput("speciesInput", "Display species", 1, min = 1, max = 30, width = 120),
       actionButton("goButton1", strong("Save occupancy data"), width = 240),
       actionButton("goButton2", strong("Save data for all Species"), width = 240),
@@ -109,27 +109,37 @@ server <- function(input, output) {
     # cam_loc <- c(23:42)
 
     # Filter tibble five with user inputs (date range, camera location ID)
+    # message("Original data has ", nrow(five), " rows.")
     five <- five %>%
-      dplyr::filter(LocationID %in% cam_loc & date >= Min_Date & date <= Max_Date)
-    message(head(five))
+      dplyr::filter(LocationID %in% cam_loc) %>% 
+      dplyr::filter(date >= Min_Date) %>% 
+      dplyr::filter(date <= Max_Date)
+    # message("Filtered data has ", nrow(five), " rows.")
 
-    spec_b <- as.character(unique(five$CommonName)) #### creates unique species list from matrix "five"
+    # unique species list from matrix "five":
+    # TODO move to preprocessing, generate from species table, not observations
+    spec_b <- as.character(unique(five$CommonName)) 
+    
     spec_c <- spec_a[spec_a %in% spec_b] #### finds matching species between spec_a and spec_b and stores them as a vector in spec_c
     spec_d <- paste(spec_c, "count", sep = " ", collapse = NULL) ###### species list with count appended
     spec_e <- paste(spec_c, "month", sep = " ", collapse = NULL) ###### species list with month appended
     # combine vectors spec_b and spec_c, sort them and then replace " " and "-" with "_"
     spec_f <- gsub(" ", "_", gsub("-", " ", sort(c(spec_d, spec_e)))) 
 
+    # depends on input$intInput
     if (interval > 0) {
       spec_c <- c("date", "idate", "yearmonth", "year", "month", spec_c) 
     } else {
       spec_c <- c("date", "yearmonth", "year", "month", spec_c) 
     }
     
+    # combine original contents of f with LocationID, UTM_E etc.
     spec_f <- c("LocationID", "UTM_E", "UTM_N", spec_f) 
-    #### combines original contents of f with LocationID, UTM_E etc......
 
-    # number_locations <- length(camloc$LocationID) ##### number of distinct locations - from preprocessing
+    # number of distinct locations - moved to preprocessing
+    # number_locations <- length(camloc$LocationID) 
+    
+    # TODO move to function, convert to tidy pipeline
     date_range <- seq(Min_Date, Max_Date, "days") ###### range of dates
     number_dates <- length(date_range) ###### number of dates
     date_entire <- rep(date_range, number_locations) #### dates repeated for every location
@@ -150,7 +160,6 @@ server <- function(input, output) {
     date_missing$month <- lubridate::month(date_missing$date)
     date_missing$year <- lubridate::year(date_missing$date)
     total <- rbind(five, date_missing) ###### combines original datafile with all missing dates
-
     daily <- unique(subset(total, select = c("SpeciesID", "LocationID", "UTM_E", "UTM_N", "CommonName", "Genus", "Species", "date", "year", "month", "day", "count"))) ##### raw daily detections
     daily$yearmonth <- do.call(paste, c(daily[c("year", "month")], sep = "-"))
 
@@ -159,6 +168,7 @@ server <- function(input, output) {
                     "Genus", "Species", "date", "year", "month", "day", "count") %>%
       dplyr::mutate(yearmonth = glue::glue("{year}-{month}")) %>%
       unique
+    # end pipeline
 
     if (interval > 0) {
       total$idate <- cut(total$date, breaks = paste(interval, "day")) #### creates field called idate which is grouped date based on variable interval
@@ -167,59 +177,62 @@ server <- function(input, output) {
       daily$idate <- as.Date(as.character(daily$idate), format = "%Y-%m-%d") ###### changes  idate to date format
     }
 
-    matrix2 <- dcast(daily, date ~ CommonName, fun.aggregate = sum, na.rm = TRUE, value.var = "count")
+    matrix2 <- data.table::dcast(daily, date ~ CommonName, fun.aggregate = sum, na.rm = TRUE, value.var = "count")
     matrix2$date <- as.Date(matrix2$date, "%d/%m/%Y")
     matrix2$month <- format(matrix2$date, "%m")
     matrix2$year <- format(matrix2$date, "%Y")
     matrix2$yearmonth <- do.call(paste, c(matrix2[c("year", "month")], sep = "-"))
-    ###############################################################################################################################
-
-    ###############################################################################################################################
+    
     if (interval > 0) {
       matrix2$idate <- cut(matrix2$date, breaks = paste(interval, "day"))
       matrix2$idate <- as.Date(as.character(matrix2$idate), format = "%Y-%m-%d")
-
-      ###############################################################################################################################
-
-      #############################################################################################################################
     }
 
-    matrix3 <- matrix2[, spec_c] ##### uses vector "spec_c" to select a species subset from matrix 2 and store it in matrix 3
+    # use vector "spec_c" to select a species subset from matrix 2 and store it in matrix 3
+    matrix3 <- matrix2[, spec_c] 
 
-    locations <- unique(subset(camloc, select = c("LocationID", "UTM_E", "UTM_N"))) ###### creates dataframe locations with unique location and UTM coordinates
-    commonname <- unique(subset(species, select = c("CommonName", "Genus", "Species", "SpeciesID"))) ####### creates dataframe commonname with unique taxonomic information
+    # create dataframe locations with unique location and UTM coordinates
+    locations <- unique(subset(camloc, select = c("LocationID", "UTM_E", "UTM_N"))) 
+    
+    # creates dataframe commonname with unique taxonomic information
+    commonname <- unique(subset(species, select = c("CommonName", "Genus", "Species", "SpeciesID"))) 
 
     if (interval > 0) {
-      int <- nrow(unique(subset(total, select = c("idate")))) + 1 ####### stores the total number of intervals in the survey period
+      # store the total number of intervals in the survey period
+      int <- nrow(unique(subset(total, select = c("idate")))) + 1 
     } else {
-      months <- nrow(unique(subset(total, select = c("year", "month")))) + 1 ####### stores the total number of months in the survey period
+      # store the total number of months in the survey period
+      months <- nrow(unique(subset(total, select = c("year", "month")))) + 1 
     }
 
-    iterations <- nrow(commonname) ######## stores the number of unique names in variable iterations
+    # store the number of unique names in variable iterations
+    iterations <- nrow(commonname) 
     iterations2 <- length(spec_a)
-
 
     test2 <- NULL
 
-    ##########################################################################################################################################################################
-
-    #########################################################################################################################################################################
     if (interval > 0) {
-      for (i in 1:iterations) ####### sets up a loop based on number of unique names
+      # set up a loop based on number of unique names
+      for (i in 1:iterations) 
       {
-        nameused <- paste(as.character(commonname$CommonName[i])) ####### takes the ith commonname and stores it in name used
-        nameused1 <- paste(as.character(commonname$CommonName[i]), "count", sep = "_") ###### adds count to the ith commonname and stores it in namused1
-        nameused2 <- paste(as.character(commonname$CommonName[i]), "month", sep = "_") ###### adds month to the ith commonname and stores it in namused2
+        # take the ith commonname and stores it in name used
+        nameused <- paste(as.character(commonname$CommonName[i])) 
+        
+        # add count to the ith commonname and stores it in namused1
+        nameused1 <- paste(as.character(commonname$CommonName[i]), "count", sep = "_") 
+        
+        # add month to the ith commonname and stores it in namused2
+        nameused2 <- paste(as.character(commonname$CommonName[i]), "month", sep = "_") 
+        
         eight <- daily[grep(paste(nameused), daily$CommonName), ]
 
         test <- nrow(eight)
 
-        if (test < 3) { ##### this and next 2 lines check for species with less than three detections
+        # check for species with less than three detections
+        if (test < 3) { 
           test2 <- append(test2, nameused1)
           test2 <- append(test2, nameused2)
         }
-
-
 
         if (test > 2) {
           reduce <- int - nrow(unique(subset(eight, select = c("idate")))) - 1
@@ -234,7 +247,7 @@ server <- function(input, output) {
             locations[, paste(nameused2)] <- as.numeric(matrix5[match(locations$LocationID, matrix5$LocationID), c(paste(nameused2))])
           }
         }
-      } ##### outer loop line 133
+      }
     } else {
       for (i in 1:iterations) ####### sets up a loop based on number of unique names
       {
@@ -260,37 +273,35 @@ server <- function(input, output) {
             locations[, paste(nameused2)] <- as.numeric(matrix5[match(locations$LocationID, matrix5$LocationID), c(paste(nameused2))])
           }
         }
-      } ##### outer loop line 133
+      }
     }
-    ## spec_g<-colnames(locations)###****************************************test to make sure column names are the same
-    ## spec_f<-spec_f[spec_f%in%spec_g]##*************************************
-    spec_f <- setdiff(spec_f, test2) ###### creates subset of spec_f where there are no matching records in test2
-    names(locations) <- gsub(" ", "_", names(locations)) ###### removes blanks from column names in locations  to ensure no mismatch or errors
-    names(locations) <- gsub("-", "_", names(locations)) ###### removes hyphen from column names in locations  to ensure no mismatch or errors
-    locations2 <- locations[, spec_f] ##### uses vector "spec_f" to select a species subset from matrix locations and stores it in matrix locations2
+    
+    ## spec_g<-colnames(locations)  # test to make sure column names are the same
+    ## spec_f<-spec_f[spec_f%in%spec_g]
+    spec_f <- setdiff(spec_f, test2) # create subset of spec_f where there are no matching records in test2
+    names(locations) <- gsub(" ", "_", names(locations)) # remove blanks from column names in locations  to ensure no mismatch or errors
+    names(locations) <- gsub("-", "_", names(locations)) # remove hyphen from column names in locations  to ensure no mismatch or errors
+    locations2 <- locations[, spec_f] # use vector "spec_f" to select a species subset from matrix locations and stores it in matrix locations2
 
     locations2[is.na(locations2)] <- 0
-    locations[is.na(locations)] <- 0 ####### replace "NA" with 0 in df.locations
-
-
+    locations[is.na(locations)] <- 0 # replace "NA" with 0 in df.locations
 
     observeEvent(input$goButton2, {
       #### write.csv (daily, file="Raw_Daily_Detections.csv")
       #### write.csv (date_missing, file="missing_dates.csv")
-      write_csv(matrix2, file = here::here("data", "All_Fauna_Detections X Day.csv"))
+      readr::write_csv(matrix2, here::here("data", "All_Fauna_Detections X Day.csv"))
       #### write.csv (matrix3, file="Detections X Day.csv")
-      write_csv(locations, file = here::here("data", "All_Fauna_Detections X Location.csv"))
+      readr::write_csv(locations, here::here("data", "All_Fauna_Detections X Location.csv"))
       #### write.csv (locations2, file="Detections X Location.csv")
     })
 
-
     observeEvent(input$goButton3, {
-      write.csv(daily, file = "Selected_Daily_Detections.csv")
+      readr::write_csv(daily, here::here("data", "Selected_Daily_Detections.csv"))
       #### write.csv (date_missing, file="missing_dates.csv")
       #### write.csv (matrix2, file="All_Fauna_Detections_Matrix.csv")
-      write.csv(matrix3, file = "Selected_Fauna_Detections X Day.csv")
+      readr::write_csv(matrix3, here::here("data", "Selected_Fauna_Detections X Day.csv"))
       #### write.csv (locations, file="All_Fauna_Detections X Location.csv")
-      write.csv(locations2, file = "Selected_Fauna_Detections X Location.csv")
+      readr::write_csv(locations2, here::here("data", "Selected_Fauna_Detections X Location.csv"))
     })
 
     ################################################################################################################################################################
@@ -323,7 +334,7 @@ server <- function(input, output) {
         print(active4)
       }
     })
-    ##############################################################################################################################################################
+
     names(matrix3) <- gsub(" ", "_", names(matrix3)) ###### removes blanks from column names in matrix 3
     names(matrix3) <- gsub("-", "_", names(matrix3)) ###### removes hyphen from column names in matrix 3
 
@@ -332,7 +343,6 @@ server <- function(input, output) {
       output$detection <- renderPlot({
         i <- input$speciesInput
 
-
         species <- colnames(matrix3)[i + 5]
         if (ncol(matrix3) >= i + 5) {
           stats <- summarySE(matrix3, c(paste(species)), groupvars = c("idate"), na.rm = FALSE, conf.interval = 0.95, .drop = TRUE)
@@ -340,7 +350,6 @@ server <- function(input, output) {
           pl <- ggplot(data = stats, aes(x = idate, y = stats[, 3], group = 1)) +
             ylab("mean daily detections") +
             xlab("date") + scale_x_date(date_breaks = paste(interval * 3.65, "day")) +
-            # ggtitle(paste(species,"(interval:",interval,"days)"), subtitle = NULL)+
             ggtitle(glue::glue("{species} (interval: {interval} days)")) +
             geom_ribbon(aes(ymin = stats[, 3] - stats$ci, ymax = stats[, 3] + stats$ci), fill = "grey90") +
             geom_errorbar(aes(ymin = stats[, 3] - sd, ymax = stats[, 3] + sd), width = .3, color = "grey40", size = 0.2) +
@@ -402,12 +411,10 @@ server <- function(input, output) {
       numofspecies <- NCOL(matrix3) - 4
       output$detection <- renderPlot({
         i <- input$speciesInput
-
-
         species <- colnames(matrix3)[i + 4]
+        
         if (ncol(matrix3) >= i + 4) {
           stats <- summarySE(matrix3, c(paste(species)), groupvars = c("yearmonth"), na.rm = FALSE, conf.interval = 0.99, .drop = TRUE)
-
           pl <- ggplot(data = stats, aes(x = yearmonth, y = stats[, 3], group = 1)) +
             ylab("mean daily detections") +
             xlab("month") +
@@ -488,7 +495,6 @@ server <- function(input, output) {
     blues <- colorRampPalette(c("yellow", "orange", "blue", "dark blue"))
     ##### pols <- list("sp.polygons", CA, fill = "lightgray")
 
-
     ##### Transforms data to equivalant projections. in this case epsg: 32750 which is zone 50 South WGS 84
     ##### library(rgdal)
     TA <- CRS("+init=epsg:32750")
@@ -505,7 +511,6 @@ server <- function(input, output) {
     ## Loading required namespace: deldir
     #### plot(v)
 
-    ##############################################################################################################################################
     ## bubble(dsp, species2, main = paste(species2),identify = TRUE,col = "red",maxsize = 3, do.sqrt = TRUE)
     ## pointLabel(xx,yy,labels=zz, doPlot=TRUE)
     ## symbols(xx, yy, circles=paste(matrix3,"$",species2,sep="" ))
@@ -521,27 +526,20 @@ server <- function(input, output) {
         ggplot(bp, aes(x = UTM_E, y = UTM_N, size = bp[, i + 3])) + geom_point(alpha = 0.2) + scale_size_continuous(range = c(1, 16)) +
           geom_point(colour = "darkslategray3") +
           labs(size = paste(species2)) + geom_text(aes(label = LocationID), size = 4) + coord_fixed(ratio = 1)
-
-        ##################################################################################################################################################
       }
     })
 
-
-
     output$NN_Interpolation <- renderPlot({
-
-      ###### this code  that produces interpolations of all columns from locations2. It will sequentially go through each column and produce a nearest neighbor plot and an IDW plot. Several preliminary plots can also be turned on but are not really necessary unless you want to view the entire process rather than just the final output.
-
-
+      # this code  that produces interpolations of all columns from locations2. 
+      # It will sequentially go through each column and produce a nearest neighbor plot and an IDW plot. 
+      # Several preliminary plots can also be turned on but are not really necessary 
+      # unless you want to view the entire process rather than just the final output.
       i <- input$speciesInput
       ## numofspecies<-NCOL(d)-3 ##### extracts number of columns to define the size of the loop
       ### for (i in 1:numofspecies)
       ## {
       species2 <- colnames(d)[i + 3]
       if (ncol(d) >= i + 3) {
-
-
-
         #### aggregates data, clips to boundary, and fills voroni plot colours based on detections at each location
         # if (file.exists(here::here("data", "outline.shp"))) {
           ca <- aggregate(cata)
@@ -587,10 +585,6 @@ server <- function(input, output) {
         gs2 <- eval(parse(text = txt2))
         idw <- interpolate(r, gs2)
 
-
-
-
-
         # i<-input$speciesInput
         # species2<-colnames( d )[i+3]
         ##### png(file=paste(species, " NN_hill.png", sep=" "),width=900,height=1000,res=200)
@@ -602,18 +596,11 @@ server <- function(input, output) {
         hill <- hillShade(slope, aspect, 40, 270) #### calculates hillshade from slop and aspect of nnmsk
         plot(hill, col = grey(0:100 / 100), legend = FALSE, lwd = .2, cex.main = 0.6, cex.sub = 0.2, cex.axis = 0.9, asp = 1, tck = -0.02) #### plots hillshade
         ## op<-par(cex=0.5)
-        plot(nnmsk, col = rainbow(25, alpha = 0.35), cex = 1, add = TRUE) #### overlays raster layer nmsk on hillshade
+        plot(nnmsk, col = rainbow(25, alpha = 0.35), cex = 1, add = TRUE) # overlay raster layer nmsk on hillshade
         title(main = list(paste(species2, " (NN)"), cex = 1, col = "blue", font = 2))
-        ### if (file.exists(paste(wd,"data/tracks.shp",sep=""))){
-        # if (file.exists(here::here("data", "tracks.shp"))) {
-          plot(tr, add = TRUE, lwd = 0.5, border = "black")
-        # }
-        # if (file.exists(paste(wd, "data/outline.shp", sep = ""))) {
-          plot(CA, add = TRUE, lwd = 0.5, border = "black")
-        # }
-        ## if (file.exists(paste(wd,"data/points.shp",sep=""))){
+        plot(tr, add = TRUE, lwd = 0.5, border = "black")
+        plot(CA, add = TRUE, lwd = 0.5, border = "black")
         ## plot(po, add = TRUE, lwd = 0.5, cex=0.5,  border = "red")}
-        ###### dev.off()
         plot(po2, add = TRUE, lwd = 0.5, border = "black")
 
         pointLabel(xx, yy, labels = zz, doPlot = TRUE)
@@ -621,20 +608,17 @@ server <- function(input, output) {
     })
 
     output$IDW_Interpolation <- renderPlot({
-
       ## [inverse distance weighted interpolation]
-
-
-      ###### this code  that produces interpolations of all columns from locations2. It will sequentially go through each column and produce a nearest neighbor plot and an IDW plot. Several preliminary plots can also be turned on but are not really necessary unless you want to view the entire process rather than just the final output.
-
-
+      # this code  that produces interpolations of all columns from locations2. 
+      # It will sequentially go through each column and produce a nearest neighbor plot and an IDW plot. 
+      # Several preliminary plots can also be turned on but are not really necessary 
+      # unless you want to view the entire process rather than just the final output.
       i <- input$speciesInput
       ## numofspecies<-NCOL(d)-3 ##### extracts number of columns to define the size of the loop
       ### for (i in 1:numofspecies)
       ## {
       species2 <- colnames(d)[i + 3]
       if (ncol(d) >= i + 3) {
-
 
         #### aggregates data, clips to boundary, and fills voroni plot colours based on detections at each location
         # if (file.exists(here::here("data", "outline.shp"))) {
@@ -652,7 +636,6 @@ server <- function(input, output) {
           # vr <- rasterize(v, r, paste(species2))
         # }
         ###### plot(vr)
-
 
         ##### set parameters for plots to write to png files
         ###### png(file=paste(species, " NN.png", sep=" "),width=900,height=1000,res=200)
@@ -715,29 +698,22 @@ server <- function(input, output) {
       }
     })
 
-
     observeEvent(input$speciesInput, {
       if (interval > 0) {
         i <- input$speciesInput
         if (ncol(matrix3) >= i + 5) {
           species <- colnames(matrix3)[i + 5]
-
           stats <- summarySE(matrix3, c(paste(species)), groupvars = c("idate"), na.rm = FALSE, conf.interval = 0.99, .drop = TRUE)
           stats2 <- format(stats, digits = 4)
-          output$Table <- renderDT({
-            stats2
-          })
+          output$Table <- renderDT({stats2})
         }
       } else {
         i <- input$speciesInput
         if (ncol(matrix3) >= i + 4) {
           species <- colnames(matrix3)[i + 4]
-
           stats <- summarySE(matrix3, c(paste(species)), groupvars = c("yearmonth"), na.rm = FALSE, conf.interval = 0.99, .drop = TRUE)
           stats2 <- format(stats, digits = 4)
-          output$Table <- renderDT({
-            stats2
-          })
+          output$Table <- renderDT({stats2})
         }
       }
     })
@@ -760,7 +736,6 @@ server <- function(input, output) {
     ## points<-("points")  	###### points shapefile name
     resolution <- input$slider2 ###### resolution of raster in meters
 
-
     five <- five[five$LocationID %in% cam_loc, ] ##### only records that have the same LocationID as the values in vector "cam_loc" are kept
     five <- five[five$date >= Min_Date, ] ##### only records that exceed minimum date are kept
     five <- five[five$date <= Max_Date, ] ##### only records that are less than maximum date are kept
@@ -777,8 +752,6 @@ server <- function(input, output) {
       spec_c <- c("date", "yearmonth", "year", "month", spec_c) #### combines original contents of c with date, yearmonth etc......
     }
     spec_f <- c("LocationID", "UTM_E", "UTM_N", spec_f) #### combines original contents of f with LocationID, UTM_E etc......
-
-
 
     number_locations <- length(camloc$LocationID) ##### number of distinct locations
     date_range <- seq(Min_Date, Max_Date, "days") ###### range of dates
@@ -873,7 +846,7 @@ server <- function(input, output) {
           na.rm = TRUE, value.var = "count"
         ) ########## creates a matrix of locations by month for each species
         oc5[, paste(nameused3)] <- rowSums(oc5[, c(2:ncol(oc5))])
-        write.csv(oc5, file = paste(nameused3, interval, "occupancy.csv"))
+        readr::write_csv(oc5, here::here("data", glue::glue("{nameused3}_{interval}_occupancy.csv")))
       }
     } else {
       for (i in 1:iterations2) { ####### sets up a loop based on number of unique names
@@ -892,7 +865,7 @@ server <- function(input, output) {
           na.rm = TRUE, value.var = "count"
         ) ########## creates a matrix of locations by month for each species
         oc5[, paste(nameused3)] <- rowSums(oc5[, c(2:ncol(oc5))])
-        write.csv(oc5, file = paste(nameused3, "months_occupancy.csv"))
+        readr::write_csv(oc5, here::here("data", glue::glue("{nameused3}_months_occupancy.csv")))
       }
     }
   })
