@@ -2,14 +2,33 @@
 # "qcc","Rmisc","ggplot2", "dbplyr", "sp","ggmap","rgeos", "tidyr","gstat","deldir","dismo","rgdal",
 # "fitdistrplus","logspline","DT","maptools"))
 
-x <- c(
-  "here", "tidyr", "reshape2", "data.table", "dplyr", "readr", "ggmap", "ggplot2", "DT", # tidyverse
-  # "Rmisc", 
-  # "deldir", # tools
-  "sp", "rgeos", "rgdal", "maptools", # spatial
-  "qcc", "fitdistrplus", "logspline", "gstat", "dismo" # analysis
-)
-lapply(x, library, character.only = TRUE)
+# TODO remove unused libraries
+# Data wrangling
+library(reshape2)
+library(data.table)
+library(dplyr)
+library(magrittr)
+library(tidyr)
+library(here)
+library(readr)
+
+# Data viz
+library(ggplot2)
+library(ggmap)
+library(DT)
+
+# Spatial
+library(sp)
+library(rgeos)
+library(rgdal)
+library(maptools)
+
+# Ecological modelling
+library(dismo)
+library(fitdistrplus)
+library(gstat)
+library(logspline)
+library(qcc)
 
 ui <- fluidPage(
   title="CPW explorer",
