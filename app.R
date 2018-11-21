@@ -4,7 +4,8 @@
 
 x <- c(
   "here", "tidyr", "reshape2", "data.table", "dplyr", "readr", "ggmap", "ggplot2", "DT", # tidyverse
-  "Rmisc", "deldir", # tools
+  # "Rmisc", 
+  # "deldir", # tools
   "sp", "rgeos", "rgdal", "maptools", # spatial
   "qcc", "fitdistrplus", "logspline", "gstat", "dismo" # analysis
 )
@@ -107,7 +108,7 @@ server <- function(input, output) {
     }
     spec_f <- c("LocationID", "UTM_E", "UTM_N", spec_f) #### combines original contents of f with LocationID, UTM_E etc......
 
-    # number_locations <- length(CameraLocations$LocationID) ##### number of distinct locations - from preprocessing
+    # number_locations <- length(camloc$LocationID) ##### number of distinct locations - from preprocessing
     date_range <- seq(Min_Date, Max_Date, "days") ###### range of dates
     number_dates <- length(date_range) ###### number of dates
     date_entire <- rep(date_range, number_locations) #### dates repeated for every location
@@ -119,7 +120,7 @@ server <- function(input, output) {
     locationbydate <- cbind(date, LocationID) ###### combines date and LocationID into single dataframe called locationbydate
     missing_date_location <- anti_join(locationbydate, five, by = c("date", "LocationID"))
     date_missing <- five[0, ] ##### creates an empty dataframe called "date_missing" based on the fields from dataframe "five"
-    date_missing <- rbind.fill(date_missing, missing_date_location) ##### combines date_missing and date_range
+    date_missing <- plyr::rbind.fill(date_missing, missing_date_location) ##### combines date_missing and date_range
     date_missing$count[is.na(date_missing$count)] <- 0 #### changes NA value in count to 0
     date_missing$UTM_E <- as.numeric(five[match(date_missing$LocationID, five$LocationID), 5])
     date_missing$UTM_N <- as.numeric(five[match(date_missing$LocationID, five$LocationID), 6])
@@ -164,7 +165,7 @@ server <- function(input, output) {
 
     matrix3 <- matrix2[, spec_c] ##### uses vector "spec_c" to select a species subset from matrix 2 and store it in matrix 3
 
-    locations <- unique(subset(CameraLocations, select = c("LocationID", "UTM_E", "UTM_N"))) ###### creates dataframe locations with unique location and UTM coordinates
+    locations <- unique(subset(camloc, select = c("LocationID", "UTM_E", "UTM_N"))) ###### creates dataframe locations with unique location and UTM coordinates
     commonname <- unique(subset(species, select = c("CommonName", "Genus", "Species", "SpeciesID"))) ####### creates dataframe commonname with unique taxonomic information
 
     if (interval > 0) {
@@ -758,7 +759,7 @@ server <- function(input, output) {
 
 
 
-    number_locations <- length(CameraLocations$LocationID) ##### number of distinct locations
+    number_locations <- length(camloc$LocationID) ##### number of distinct locations
     date_range <- seq(Min_Date, Max_Date, "days") ###### range of dates
     number_dates <- length(date_range) ###### number of dates
     date_entire <- rep(date_range, number_locations) #### dates repeated for every location
@@ -770,7 +771,7 @@ server <- function(input, output) {
     locationbydate <- cbind(date, LocationID) ###### combines date and LocationID into single dataframe called locationbydate
     missing_date_location <- anti_join(locationbydate, five, by = c("date", "LocationID"))
     date_missing <- five[0, ] ##### creates an empty dataframe called "date_missing" based on the fields from dataframe "five"
-    date_missing <- rbind.fill(date_missing, missing_date_location) ##### combines date_missing and date_range
+    date_missing <- plyr::rbind.fill(date_missing, missing_date_location) ##### combines date_missing and date_range
     date_missing$count[is.na(date_missing$count)] <- 0 #### changes NA value in count to 0
     date_missing$UTM_E <- as.numeric(five[match(date_missing$LocationID, five$LocationID), 5])
     date_missing$UTM_N <- as.numeric(five[match(date_missing$LocationID, five$LocationID), 6])
@@ -817,7 +818,7 @@ server <- function(input, output) {
 
     matrix3 <- matrix2[, spec_c] ##### uses vector "spec_c" to select a species subset from matrix 2 and store it in matrix 3
 
-    locations <- unique(subset(CameraLocations, select = c("LocationID", "UTM_E", "UTM_N"))) ###### creates dataframe locations with unique location and UTM coordinates
+    locations <- unique(subset(camloc, select = c("LocationID", "UTM_E", "UTM_N"))) ###### creates dataframe locations with unique location and UTM coordinates
     commonname <- unique(subset(species, select = c("CommonName", "Genus", "Species", "SpeciesID"))) ####### creates dataframe commonname with unique taxonomic information
 
     if (interval > 0) {

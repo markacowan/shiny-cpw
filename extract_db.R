@@ -4,6 +4,7 @@ library(dplyr)
 library(lubridate)
 library(tidyr)
 library(rgdal)
+libary(sjlabelled)
 
 # Spatial
 CA <- rgdal::readOGR(dsn=here::here("data"), layer = "outline")
@@ -13,7 +14,8 @@ tr <- rgdal::readOGR(dsn=here::here("data"), layer = "tracks")
 db <- here::here("data", "CPW.accdb")
 mdbget <- . %>%
   Hmisc::mdb.get(db, dateformat = '%d/%m/%y %H:%M:%S', allow=c("_"), as.is=T, table = .) %>%
-  tibble::as_tibble(.)
+  tibble::as_tibble(.) %>% 
+  sjlabelled::remove_all_labels()
 
 # Database tables of interest
 camloc <- mdbget("CameraLocations")
@@ -23,7 +25,7 @@ photos <- mdbget("Photos")
 visits <- mdbget("Visits")
 
 # camlocs is labelled, visits is not
-Hmisc::label(visits$LocationID) <- Hmisc::label(camloc$LocationID)
+# Hmisc::label(visits$LocationID) <- Hmisc::label(camloc$LocationID)
 
 number_locations <- length(unique(camloc$LocationID))
 
@@ -72,6 +74,6 @@ five <- five1 %>%
 # five$count <- 1 #### add 1 to count for subsequent analysis
 # five$count[five$count == 1 & five$CommonName == "None"] <- 0 #### replace count with 0 when commonname is none
 
-save(CA, tr, five, number_locations,
-     # camloc, visits, detections, species, photos, # drop these, keep "five"
+save(CA, tr, five, number_locations, 
+     camloc, species,
      file=here::here("data", "defaults.RData"))
