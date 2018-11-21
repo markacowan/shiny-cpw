@@ -76,25 +76,6 @@ server <- function(input, output) {
   # TODO https://github.com/markacowan/shiny-cpw/issues/1
   load(here::here("data", "defaults.RData"))
 
-  # BEGIN move to preprocessing
-  # one <- merge(CameraLocations, visits, by = "LocationID")
-  # two <- merge(one, photos, by = "VisitID")
-  # three <- merge(two, detections, by = "ImageID")
-  # four <- merge(three, species, by = "SpeciesID")
-  # five <- subset(four, select = c("SpeciesID", "ImageDate", "LocationID", "LocationName",
-  #                                 "UTM_E", "UTM_N", "CommonName", "Genus", "Species"))
-  #
-  # five$ImageDate <- as.POSIXct(five$ImageDate, format = "%d/%m/%Y %H:%M", tz = "") ##### creates a column called "time" in a particular format from column "Imagedate"
-  # five$date <- format(five$ImageDate, "%d/%m/%Y")
-  # five$date <- as.Date(five$date, "%d/%m/%Y") #### format date to actual date
-  # five$year <- as.numeric(format(five$ImageDate, "%Y"))
-  # five$month <- as.numeric(format(five$ImageDate, "%m"))
-  # five$day <- as.numeric(format(five$ImageDate, "%d"))
-  # five$hour <- as.numeric(format(five$ImageDate, "%H"))
-  # five$count <- 1 #### add 1 to count for subsequent analysis
-  # five$count[five$count == 1 & five$CommonName == "None"] <- 0 #### replace count with 0 when commonname is none
-  # END move to preprocessing
-
   observeEvent(input$goButton, {
     ####### Min_Date <- as.Date(c("29/09/2016"),"%d/%m/%Y") ###### date selection for minimum date
     ###### Max_Date <- as.Date(c("3/07/2018"),"%d/%m/%Y") ###### date selection for maximum date
