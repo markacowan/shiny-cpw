@@ -43,7 +43,7 @@ ui <- fluidPage(
       sliderInput("slider2", label = ("Resolution for map grid (m)"), min = 10, max = 500, value = 50),
       sliderInput("intInput", label = ("Survey interval in days (default=months)"), min = 0, max = 60, value = 0),
       ## tags$style("#goButton {background-color:green;}"),
-      actionButton("goButton", strong("Run"), width = 120, height = 80), br(),
+      actionButton("goButton", strong("Run"), width = "100%", height = 80), br(),
       numericInput("speciesInput", "Display species", 1, min = 1, max = 30, width = 120),
       actionButton("goButton1", strong("Save occupancy data"), width = 240),
       actionButton("goButton2", strong("Save data for all Species"), width = 240),
@@ -74,7 +74,10 @@ ui <- fluidPage(
     mainPanel(tabsetPanel(
       type = "tabs",
       tabPanel("How it works", includeMarkdown("README.md")),
-      tabPanel("Detection Plots", fluidRow(plotOutput("detection"), br(), br(), plotOutput("cusumplot"))),
+      tabPanel("Detection Plots", 
+               fluidRow(plotOutput("detection")),
+               fluidRow(plotOutput("cusumplot"))
+               ),
       tabPanel("IDW Interpolation", plotOutput("IDW_Interpolation", height = 800)),
       tabPanel("NN Interpolation", plotOutput("NN_Interpolation", height = 800)),
       tabPanel("Bubble Plot", plotOutput("Bubble_Plot", height = 600)),
@@ -86,7 +89,7 @@ ui <- fluidPage(
       tabPanel("Summary Data Table", DTOutput("Table"))
     ))
   )
-) #### outer fluidPage
+) # /fluidPage
 
 server <- function(input, output) {
 
@@ -94,38 +97,37 @@ server <- function(input, output) {
   load(here::here("data", "defaults.RData"))
 
   observeEvent(input$goButton, {
-    ####### Min_Date <- as.Date(c("29/09/2016"),"%d/%m/%Y") ###### date selection for minimum date
-    ###### Max_Date <- as.Date(c("3/07/2018"),"%d/%m/%Y") ###### date selection for maximum date
-    dr <- input$daterange1
-    Min_Date <- dr[1] ###### date selection for minimum date
-    Max_Date <- dr[2] ###### date selection for maximum date
-    ###### cam_loc <- c(23:42) ##### a vector which is used to select LocationID values eg (1:30,35,40,45:50)
-    # val <- input$slider1
+    Min_Date <- input$daterange1[1]
+    Max_Date <- input$daterange1[2]
     cam_loc <- c(input$slider1[1]:input$slider1[2])
     spec_a <- input$variable
     interval <- input$intInput
-    rast <- input$slider2 ###### resolution of raster in meters
+    resolution <- input$slider2 # raster resolution in meters
+    # For debug:
+    # Min_Date <- as.Date(c("29/09/2016"),"%d/%m/%Y")
+    # Max_Date <- as.Date(c("3/07/2018"),"%d/%m/%Y")
+    # cam_loc <- c(23:42)
 
+    # Filter tibble five with user inputs (date range, camera location ID)
     five <- five %>%
-      dplyr::filter(LocationID %in% cam_loc) %>%
-      dplyr::filter(date >= Min_Date) %>%
-      dplyr::filter(date <= Max_Date)
-    # five <- five[five$LocationID %in% cam_loc, ] ##### only records that have the same LocationID as the values in vector "cam_loc" are kept
-    # five <- five[five$date >= Min_Date, ] ##### only records that exceed minimum date are kept
-    # five <- five[five$date <= Max_Date, ] ##### only records that are less than maximum date are kept
+      dplyr::filter(LocationID %in% cam_loc & date >= Min_Date & date <= Max_Date)
+    message(head(five))
 
     spec_b <- as.character(unique(five$CommonName)) #### creates unique species list from matrix "five"
     spec_c <- spec_a[spec_a %in% spec_b] #### finds matching species between spec_a and spec_b and stores them as a vector in spec_c
     spec_d <- paste(spec_c, "count", sep = " ", collapse = NULL) ###### species list with count appended
     spec_e <- paste(spec_c, "month", sep = " ", collapse = NULL) ###### species list with month appended
-    spec_f <- gsub(" ", "_", gsub("-", " ", sort(c(spec_d, spec_e)))) #### combines vectors spec_b and spec_c, sorts them and then removes spaces and hyphens and replaces them with underscores
+    # combine vectors spec_b and spec_c, sort them and then replace " " and "-" with "_"
+    spec_f <- gsub(" ", "_", gsub("-", " ", sort(c(spec_d, spec_e)))) 
 
     if (interval > 0) {
-      spec_c <- c("date", "idate", "yearmonth", "year", "month", spec_c) #### combines original contents of c with date, yearmonth etc......
+      spec_c <- c("date", "idate", "yearmonth", "year", "month", spec_c) 
     } else {
-      spec_c <- c("date", "yearmonth", "year", "month", spec_c) #### combines original contents of c with date, yearmonth etc......
+      spec_c <- c("date", "yearmonth", "year", "month", spec_c) 
     }
-    spec_f <- c("LocationID", "UTM_E", "UTM_N", spec_f) #### combines original contents of f with LocationID, UTM_E etc......
+    
+    spec_f <- c("LocationID", "UTM_E", "UTM_N", spec_f) 
+    #### combines original contents of f with LocationID, UTM_E etc......
 
     # number_locations <- length(camloc$LocationID) ##### number of distinct locations - from preprocessing
     date_range <- seq(Min_Date, Max_Date, "days") ###### range of dates
@@ -549,7 +551,7 @@ server <- function(input, output) {
           ##### spplot(vca, paste(species), col.regions=rev(get_col_regions()))
 
           #######   rasterizes data based on required resolution
-          r <- raster(cata, res = rast) #### takes value from rast to set resolution in meters
+          r <- raster(cata, res = rast) #### takes value from resolution to set resolution in meters
           vr <- rasterize(vca, r, paste(species2))
         # } else {
         #   r <- raster(v, res = rast)
@@ -643,7 +645,7 @@ server <- function(input, output) {
           ##### spplot(vca, paste(species), col.regions=rev(get_col_regions()))
 
           #######   rasterizes data based on required resolution
-          r <- raster(cata, res = rast) #### takes value from rast to set resolution in meters
+          r <- raster(cata, res = rast) #### takes value from resolution to set resolution in meters
           vr <- rasterize(vca, r, paste(species2))
         # } else {
           # r <- raster(v, res = rast)
@@ -756,7 +758,7 @@ server <- function(input, output) {
     outline <- ("outline") ###### boundary shapefile name
     tracks <- ("tracks") ###### tracks shapefile name
     ## points<-("points")  	###### points shapefile name
-    rast <- input$slider2 ###### resolution of raster in meters
+    resolution <- input$slider2 ###### resolution of raster in meters
 
 
     five <- five[five$LocationID %in% cam_loc, ] ##### only records that have the same LocationID as the values in vector "cam_loc" are kept
