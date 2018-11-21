@@ -16,7 +16,7 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(dateRangeInput("daterange1", "Date Range:",
                                 start = "2015-03-01",
-                                end   = "2018-05-31"),
+                                end   = "2018-09-07"),
                  # textInput("path", label= "Path for spatial data",value="C:/",placeholder = "C:/"),
                  sliderInput("slider1", label = ("Camera Location #'s"), min = 1, 
                              max = 100, value = c(1,60)),
@@ -595,7 +595,8 @@ plot(hill, col=grey(0:100/100),legend=FALSE,  lwd=.2, cex.main=0.6,cex.sub=0.2, 
 ##op<-par(cex=0.5)
 plot(nnmsk, col=rainbow(25, alpha=0.35),cex=1, add=TRUE)#### overlays raster layer nmsk on hillshade
 title(main = list(paste(species2," (NN)"), cex = 1, col = "blue", font = 2))
-if (file.exists(paste(wd,"data/tracks.shp",sep=""))){
+###if (file.exists(paste(wd,"data/tracks.shp",sep=""))){
+if (file.exists(here::here("data", "tracks.shp"))){
 plot(tr, add = TRUE, lwd = 0.5, border = "black")}
 if (file.exists(paste(wd,"data/outline.shp",sep=""))){
 plot(CA, add = TRUE, lwd = 0.5,  border = "black")}
@@ -626,7 +627,7 @@ output$IDW_Interpolation<-renderPlot({
   
  
   #### aggregates data, clips to boundary, and fills voroni plot colours based on detections at each location
-  if (file.exists(paste(wd,"data/outline.shp",sep=""))){    
+    if (file.exists(here::here("data", "outline.shp"))){    
     ca <- aggregate(cata)
     ca<-spTransform(ca, TA)
     ## Loading required namespace: rgeos
@@ -690,7 +691,8 @@ plot(hill, col=grey(0:100/100), legend=FALSE, lwd=.2, cex.main=0.6,cex.sub=0.2, 
 ##op<-par(cex=0.5)
 plot(idwr, col=rainbow(25, alpha=0.35),cex=1, add=TRUE)
 title(main = list(paste(species2," (IDW)"), cex = 1, col = "blue", font = 2))
-if (file.exists(paste(wd,"data/tracks.shp",sep=""))){
+###if (file.exists(paste(wd,"data/tracks.shp",sep=""))){
+if (file.exists(here::here("data", "tracks.shp"))){ 
 plot(tr, add = TRUE, lwd = 0.5, border = "black")}
 if (file.exists(paste(wd,"data/outline.shp",sep=""))){
 plot(CA, add = TRUE, lwd = 0.5,  border = "black")}
