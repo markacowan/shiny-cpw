@@ -3,8 +3,13 @@
 
 
 
-x <- c("odbc","DBI","RODBC", "here","dbplyr",  "readr", "data.table", "reshape2","qcc", "Rmisc",
-       "ggplot2","dplyr","sp","ggmap","rgeos", "tidyr","gstat","deldir","dismo","rgdal","fitdistrplus","logspline","DT","maptools")
+x <- c(
+    # "odbc", "DBI", "RODBC", # db drivers
+    "ggplot2","dplyr", "dbplyr", "readr", "ggmap", "tidyr","reshape2", "here","data.table", "DT", # tidyverse
+    "Rmisc","deldir", # tools
+    "sp","rgeos", "rgdal","maptools", # spatial
+    "qcc", "fitdistrplus","logspline","gstat","dismo" # analysis
+    )
 lapply(x, library, character.only = TRUE)
 
 ui <- fluidPage(
