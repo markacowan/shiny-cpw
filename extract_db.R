@@ -46,14 +46,13 @@ five1$ImageDate <- as.POSIXct(five1$ImageDate, format = "%d/%m/%Y %H:%M", tz = "
 five <- five1 %>% 
   dplyr::mutate(
     # image_date = lubridate::ymd_hms(ImageDate, timezone = "Australia/Perth"),
-    date = floor_date(ImageDate,"day"),
+    date = floor_date(ImageDate,"day") %>% as.Date,
     year = lubridate::year(ImageDate),
     month = lubridate::month(ImageDate),
     day = lubridate::day(ImageDate),
     hour = lubridate::hour(ImageDate),
     count = ifelse(CommonName == "None", 0, 1)
   ) 
-
 
 # Replaces: 
 # one <- merge(camloc, visits, by = "LocationID")
