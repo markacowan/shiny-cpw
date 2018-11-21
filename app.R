@@ -3,7 +3,6 @@
 # "fitdistrplus","logspline","DT","maptools"))
 
 x <- c(
-  # "dbplyr", "odbc", "DBI", "RODBC", # db drivers
   "here", "tidyr", "reshape2", "data.table", "dplyr", "readr", "ggmap", "ggplot2", "DT", # tidyverse
   "Rmisc", "deldir", # tools
   "sp", "rgeos", "rgdal", "maptools", # spatial
@@ -11,11 +10,9 @@ x <- c(
 )
 lapply(x, library, character.only = TRUE)
 
-library()
-
-
 ui <- fluidPage(
-  h1(id = "title", "CPW data analysis"),
+  title="CPW explorer",
+  h1(id = "title", "CPW camera trapping data explorer"),
   h3("Author: M.A. Cowan, DBCA"),
   # tags$style(HTML("#title{color: blue;font-size: 15px;}")),
 
@@ -463,13 +460,6 @@ server <- function(input, output) {
     po2 <- SpatialPoints(po1[, 3:4], proj4string = CRS("+init=epsg:32750"))
     po2 <- SpatialPointsDataFrame(po2, po1)
 
-    # if (file.exists(here::here("data", "outline.shp"))){
-    #   message("data/outlihe.shp exists")
-    #   CA <- readOGR(dsn=here::here("data"), layer = "outline")}
-    # if (file.exists(here::here("data", "tracks.shp"))){
-    # tr <- readOGR(dsn=here::here("data"), layer = "tracks")}
-    # if (file.exists(paste(wd,"data/points.shp",sep=""))){
-    # po <- readOGR(dsn=paste(wd), layer = paste(points))}
     # define groups for mapping
     cuts <- c(0, 5, 10, 15, 20, 25, 30, 35)
     # set up a palette of interpolated colors
@@ -481,12 +471,8 @@ server <- function(input, output) {
     ##### library(rgdal)
     TA <- CRS("+init=epsg:32750")
     dta <- spTransform(dsp, TA)
-    if (file.exists(here::here("data", "outline.shp"))) {
-      cata <- spTransform(CA, TA)
-    }
-    if (file.exists(here::here("data", "tracks.shp"))) {
-      tr <- spTransform(tr, TA)
-    }
+    cata <- spTransform(CA, TA)
+    tr <- spTransform(tr, TA)
     ## if (file.exists(paste(wd,"data/points.shp",sep=""))){
     ## po <- spTransform(po, TA)}
 
@@ -535,7 +521,7 @@ server <- function(input, output) {
 
 
         #### aggregates data, clips to boundary, and fills voroni plot colours based on detections at each location
-        if (file.exists(here::here("data", "outline.shp"))) {
+        # if (file.exists(here::here("data", "outline.shp"))) {
           ca <- aggregate(cata)
           ca <- spTransform(ca, TA)
           ## Loading required namespace: rgeos
@@ -545,10 +531,10 @@ server <- function(input, output) {
           #######   rasterizes data based on required resolution
           r <- raster(cata, res = rast) #### takes value from rast to set resolution in meters
           vr <- rasterize(vca, r, paste(species2))
-        } else {
-          r <- raster(v, res = rast)
-          vr <- rasterize(v, r, paste(species2))
-        }
+        # } else {
+        #   r <- raster(v, res = rast)
+        #   vr <- rasterize(v, r, paste(species2))
+        # }
         ###### plot(vr)
 
         ##### set parameters for plots to write to png files
@@ -597,12 +583,12 @@ server <- function(input, output) {
         plot(nnmsk, col = rainbow(25, alpha = 0.35), cex = 1, add = TRUE) #### overlays raster layer nmsk on hillshade
         title(main = list(paste(species2, " (NN)"), cex = 1, col = "blue", font = 2))
         ### if (file.exists(paste(wd,"data/tracks.shp",sep=""))){
-        if (file.exists(here::here("data", "tracks.shp"))) {
+        # if (file.exists(here::here("data", "tracks.shp"))) {
           plot(tr, add = TRUE, lwd = 0.5, border = "black")
-        }
-        if (file.exists(paste(wd, "data/outline.shp", sep = ""))) {
+        # }
+        # if (file.exists(paste(wd, "data/outline.shp", sep = ""))) {
           plot(CA, add = TRUE, lwd = 0.5, border = "black")
-        }
+        # }
         ## if (file.exists(paste(wd,"data/points.shp",sep=""))){
         ## plot(po, add = TRUE, lwd = 0.5, cex=0.5,  border = "red")}
         ###### dev.off()
@@ -629,7 +615,7 @@ server <- function(input, output) {
 
 
         #### aggregates data, clips to boundary, and fills voroni plot colours based on detections at each location
-        if (file.exists(here::here("data", "outline.shp"))) {
+        # if (file.exists(here::here("data", "outline.shp"))) {
           ca <- aggregate(cata)
           ca <- spTransform(ca, TA)
           ## Loading required namespace: rgeos
@@ -639,10 +625,10 @@ server <- function(input, output) {
           #######   rasterizes data based on required resolution
           r <- raster(cata, res = rast) #### takes value from rast to set resolution in meters
           vr <- rasterize(vca, r, paste(species2))
-        } else {
-          r <- raster(v, res = rast)
-          vr <- rasterize(v, r, paste(species2))
-        }
+        # } else {
+          # r <- raster(v, res = rast)
+          # vr <- rasterize(v, r, paste(species2))
+        # }
         ###### plot(vr)
 
 
@@ -693,12 +679,12 @@ server <- function(input, output) {
         plot(idwr, col = rainbow(25, alpha = 0.35), cex = 1, add = TRUE)
         title(main = list(paste(species2, " (IDW)"), cex = 1, col = "blue", font = 2))
         ### if (file.exists(paste(wd,"data/tracks.shp",sep=""))){
-        if (file.exists(here::here("data", "tracks.shp"))) {
+        # if (file.exists(here::here("data", "tracks.shp"))) {
           plot(tr, add = TRUE, lwd = 0.5, border = "black")
-        }
-        if (file.exists(paste(wd, "data/outline.shp", sep = ""))) {
+        # }
+        # if (file.exists(paste(wd, "data/outline.shp", sep = ""))) {
           plot(CA, add = TRUE, lwd = 0.5, border = "black")
-        }
+        # }
         ## if (file.exists(paste(wd,"data/points.shp",sep=""))){
         ## plot(po, add = TRUE, lwd = 0.5, cex=0.5,  border = "red")}
         plot(po2, add = TRUE, lwd = 0.5, border = "black")
